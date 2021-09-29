@@ -16,8 +16,15 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
-          title: Text("Paigham"),
-          backgroundColor: Colors.green,
+          title: Text(
+            'Paigham',
+             style: TextStyle(
+               fontSize: 40.0,
+               fontFamily: "Samaran"
+               ),
+            ),
+          backgroundColor: Colors.blue[900],
+        
           actions: [
             Row(mainAxisAlignment: MainAxisAlignment.end, children: [
               TextButton(
