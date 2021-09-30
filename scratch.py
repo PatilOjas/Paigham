@@ -1,7 +1,46 @@
+from math import ceil
+from typing import Counter
+import psycopg2
+
+
+# Database connector
+dbConn = psycopg2.connect(database="scratch", user="postgres", password="12345678", host="localhost", port=5432)
+dbConn.autocommit = True
+dbCursor = dbConn.cursor()
+
+##############################         DO NOT DELETE FOLLOWING CONTENT              ###############################
+
+
+# try: 
+# 	dbCursor.execute("""
+# 	CREATE TABLE mediafiles (
+# 		timestamp TIMESTAMP,
+# 		extension text,
+# 		media bytea
+# 	);
+# 	""")
+# except:
+# 	pass
+
+# path =  "C:/Users/ojasp/Pictures/a.png"
+# file_ext = path.split('.')[-1]
+# f = open("C:/Users/ojasp/Pictures/a.png", 'rb').read()
+# dbCursor.execute(f"""INSERT INTO mediafiles (timestamp, extension, media) VALUES( LOCALTIMESTAMP, %s, %s)""", (file_ext, psycopg2.Binary(f)))
+# dbConn.commit()
+
+# dbCursor.execute("SELECT media, extension FROM mediafiles")
+# blob = dbCursor.fetchall()[-1]
+# print(blob)
+# open(f'fetched.png', 'wb').write(blob[0])
+
+#################################################################################################################
+
+# dbCursor.execute("TRUNCATE mediafiles;")
+dbConn.commit()
 import socket
 import threading
 import psycopg2
-import os
+import time
 
 # Database connector
 dbConn = psycopg2.connect(database="scratch", user="postgres", password="12345678", host="localhost", port=5432)
@@ -9,50 +48,60 @@ dbConn.autocommit = True
 dbCursor = dbConn.cursor()
 
 
-counter = 0
 clientList = dict()
 threadList = list()
 
 
+try: 
+	dbCursor.execute("""
+	CREATE TABLE mediafiles (
+		timestamp TIMESTAMP,
+		extension text,
+		media bytea
+	);
+	""")
+except:
+	pass
+
+
+
 def router(clientConnection, userInfo):
-	global counter
 	
 	while True:
-		counter += 1
 		destClientMobNo = clientConnection.recv(2048).decode()
-		print("destClientConnection", clientList[f"paigham{destClientMobNo}"])
 		destConnection = clientList[f"paigham{destClientMobNo}"]
 
 
-		# f = open(f'recvdImgServer.mp4', 'wb')
+		mediaBinary = b""
+
 		imgChunk = clientConnection.recv(2048)
+		byteReceived = 2048
+		startTime = time.time()
 		while imgChunk:
-			# f.write(imgChunk)
+			mediaBinary += imgChunk
 			destConnection.send(imgChunk)
 			imgChunk = clientConnection.recv(2048)
+			try:
+				imgChunk = int(imgChunk.decode().strip())
+			except:
+				pass
+			
+			byteReceived += 2048
+
+		print("time taken: ", time.time() - startTime)
 		
-		# f.seek(0)
+		time.sleep(ceil(byteReceived/ 774144))
 
-		# imgData = f.read(2048)
-		# while imgData:
-		# 	destConnection.send(imgData)
-		# 	imgData = f.read(2048)
+		destConnection.send("0".encode())
+
+		dbCursor.execute(f"""INSERT INTO mediafiles (timestamp, extension, media) VALUES( LOCALTIMESTAMP, %s, %s)""", (file_ext, psycopg2.Binary(mediaBinary)))
+
+		dbConn.commit
+
+		dbCursor.execute("SELECT extension, media FROM mediafiles;")
+		blob = dbCursor.fetchall()[-1]
 		
-		# f.close()
-
-		# f = open(f'recvdImg{counter}.png', 'rb').read()
-		# dbCursor.execute(f"""INSERT INTO images (id, ext, image) VALUES(%s, %s, %s)""", (counter, file_ext, psycopg2.Binary(f)))
-
-		# dbConn.commit
-
-		# os.remove(f'recvdImg{counter}.png')
-		counter-=1
-		# dbCursor.execute("SELECT id, image, ext FROM images WHERE id=2;")
-		# blob = dbCursor.fetchone()
-
-		# print(blob)
-
-		# open('fetched.png', 'wb').write(blob[1])
+		open(f'received{blob[0]}', 'wb').write(blob[1])
 
 
 
@@ -74,7 +123,7 @@ ipAddr = "192.168.1.201"
 # Bind the socket
 try:
 	serverSocket.bind((ipAddr, portNo))
-	print("Socket has been bound at the port 4444")
+	print(f"Socket has been bound at the port {portNo}")
 except socket.error as err:
 	print("Failed to Bind the socket with error", str(err))
 
@@ -98,16 +147,13 @@ while True:
 		print("Connection failed with error", socket.error)
 		break
 	
-	print("clientConnection: ", clientConnection)
 	userInfo = clientConnection.recv(1024).decode()
 	userInfo = eval(userInfo)
-	print(userInfo)
-	#######################################           Registration Authentication           #########################################
+	###################################     Registration Authentication     #####################################
 
-	#######################################           Registration Authentication           #########################################
+	###################################     Registration Authentication     #####################################
 
 	clientList[f"paigham{userInfo['MobNo']}"] = clientConnection
-	print("clientList: ", clientList)
 	threadList.append(threading.Thread(target=router, args=(clientConnection, userInfo)))
 	threadList[len(threadList)-1].start()
 

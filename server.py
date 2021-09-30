@@ -15,17 +15,15 @@ onlineClients = list()
 applicationThread = list()
 
 # Database connector
-dbConn = psycopg2.connect(database="messenger", user="postgres", password="12345678", host="localhost", port=5432)
+dbConn = psycopg2.connect(database="", user="postgres", password="12345678", host="localhost", port=5432)
 dbConn.autocommit = True
 dbCursor = dbConn.cursor()
 
 # Creates a table that holds each registered user's credentials
 try:	
 	dbCursor.execute('''CREATE TABLE USERDATA (
-		username text PRIMARY KEY,
-		name text, 
-		surname text,
-		password text);''')
+		mobNo text PRIMARY KEY,
+		name text);''')
 	dbConn.commit()
 except:
 	print("Error in Creation of Table 'Userdata' or It already exists.") 
