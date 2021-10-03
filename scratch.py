@@ -35,77 +35,8 @@ dbCursor = dbConn.cursor()
 
 #################################################################################################################
 
-# dbCursor.execute("TRUNCATE mediafiles;")
-dbConn.commit()
 import socket
-import threading
-import psycopg2
 import time
-
-# Database connector
-dbConn = psycopg2.connect(database="scratch", user="postgres", password="12345678", host="localhost", port=5432)
-dbConn.autocommit = True
-dbCursor = dbConn.cursor()
-
-
-clientList = dict()
-threadList = list()
-
-
-try: 
-	dbCursor.execute("""
-	CREATE TABLE mediafiles (
-		timestamp TIMESTAMP,
-		extension text,
-		media bytea
-	);
-	""")
-except:
-	pass
-
-
-
-def router(clientConnection, userInfo):
-	
-	while True:
-		destClientMobNo = clientConnection.recv(2048).decode()
-		destConnection = clientList[f"paigham{destClientMobNo}"]
-
-
-		mediaBinary = b""
-
-		imgChunk = clientConnection.recv(2048)
-		byteReceived = 2048
-		startTime = time.time()
-		while imgChunk:
-			mediaBinary += imgChunk
-			destConnection.send(imgChunk)
-			imgChunk = clientConnection.recv(2048)
-			try:
-				imgChunk = int(imgChunk.decode().strip())
-			except:
-				pass
-			
-			byteReceived += 2048
-
-		print("time taken: ", time.time() - startTime)
-		
-		time.sleep(ceil(byteReceived/ 774144))
-
-		destConnection.send("0".encode())
-
-		dbCursor.execute(f"""INSERT INTO mediafiles (timestamp, extension, media) VALUES( LOCALTIMESTAMP, %s, %s)""", (file_ext, psycopg2.Binary(mediaBinary)))
-
-		dbConn.commit
-
-		dbCursor.execute("SELECT extension, media FROM mediafiles;")
-		blob = dbCursor.fetchall()[-1]
-		
-		open(f'received{blob[0]}', 'wb').write(blob[1])
-
-
-
-
 
 try:
 	# Creates a socket and if it fails, it will raise an error
@@ -117,7 +48,7 @@ except socket.error as err:
 
 # Default socket for server 
 portNo = 4445
-ipAddr = "192.168.1.201"
+ipAddr = "192.168.1.205"
 
 
 # Bind the socket
@@ -134,27 +65,40 @@ try:
 except socket.error as err:
 	print("Failed to listen with error", str(err))
 
+# clientConnection, clientAddr = serverSocket.accept()
+try:
+	clientConnection, clientAddr = serverSocket.accept()
+	print("Connection established successfully")
+except socket.error:
+	print("Connection failed with error", socket.error)
+		
+f = open('file.mp4', 'wb')
+print(clientConnection.recv(2048).decode().strip())
 
+startTime = time.time()
 
-file_ext = ".png"
+byteSent  = 2048
 
-while True:
-	# clientConnection, clientAddr = serverSocket.accept()
+byteImage = clientConnection.recv(2048)
+
+while byteImage:
+	f.write(byteImage)
+	# print(byteImage)
+	byteImage = clientConnection.recv(2048)
 	try:
-		clientConnection, clientAddr = serverSocket.accept()
-		print("Connection established successfully")
-	except socket.error:
-		print("Connection failed with error", socket.error)
-		break
-	
-	userInfo = clientConnection.recv(1024).decode()
-	userInfo = eval(userInfo)
-	###################################     Registration Authentication     #####################################
+		# checking whether a 0 is received or not
+		if byteImage == b'0':
+			print(True)
+			print(str(byteImage), type(byteImage)) 
+		byteImage = int(byteImage.decode().strip())
+	except:
+		pass
+	byteSent += 2048
+	print(byteSent)
 
-	###################################     Registration Authentication     #####################################
-
-	clientList[f"paigham{userInfo['MobNo']}"] = clientConnection
-	threadList.append(threading.Thread(target=router, args=(clientConnection, userInfo)))
-	threadList[len(threadList)-1].start()
-
+print("bytes received: ", byteSent)
+print("time elapsed: ", time.time() - startTime)
+print("Done", byteImage, type(byteImage))
+clientConnection.send("Thank You for the image".encode())
 clientConnection.close()
+f.close()

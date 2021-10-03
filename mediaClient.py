@@ -48,7 +48,7 @@ except socket.error:
 
 # Default port for server 
 portNo = 4445
-ipAddr = "192.168.1.201"
+ipAddr = "192.168.1.202"
 
 # Connects to server
 try:
