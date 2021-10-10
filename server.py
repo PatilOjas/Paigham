@@ -23,7 +23,22 @@ dbCursor = dbConn.cursor()
 try:	
 	dbCursor.execute('''CREATE TABLE USERDATA (
 		mobNo text PRIMARY KEY,
+		username text,
 		name text);''')
+	dbConn.commit()
+except:
+	print("Error in Creation of Table 'Userdata' or It already exists.") 
+
+
+# Creates a table that holds each registered user's transactions
+try:	
+	dbCursor.execute('''CREATE TABLE transactions (
+		transactionID int PRIMARY KEY,
+		sender text,
+		beneficiary text,
+		amount double,
+		timestamp TIMESTAMP
+		);''')
 	dbConn.commit()
 except:
 	print("Error in Creation of Table 'Userdata' or It already exists.") 
@@ -64,69 +79,66 @@ def log_in(clientIdentifier, trialCounter, dbCursor, unreadMsgs, unreadChats):
 		return False
 	return username
 
-# To carry out the process of signing in
-def sign_in(clientIdentifier, dbConn):
+# To carry out the process of registration
+def registerMe(clientIdentifier, dbConn, userCredentials):
 	dbCursor = dbConn.cursor()
-	clientIdentifier.send("Please write your first name: ".encode())
-	name = str(clientIdentifier.recv(1024).decode()).strip()
-	clientIdentifier.send("Please write your surname: ".encode())
-	surname = str(clientIdentifier.recv(1024).decode()).strip()
-	clientIdentifier.send("Please write a username for yourself: ".encode())
-	username = str(clientIdentifier.recv(1024).decode()).strip()
-	dbCursor.execute("SELECT COUNT(username) from USERDATA where username ='{}'".format(username))
+	
+	name = userCredentials['name']
+	mobNo = userCredentials['mobNo']
+	userName = "Paigham" + mobNo
+
+	dbCursor.execute("SELECT COUNT(mobNo) from USERDATA where mobNo ='{}'".format(mobNo))
 	usernameList = dbCursor.fetchall()
 
 	# usernameList contains the count of users having same username to currentlr registering 
 	# If it is more than 0 then the username is declined and requested to enter another username 
 	if int(usernameList[0][0]) > 0:
-		clientIdentifier.send("Username not available!!!\nTry different one".encode())
-		username = sign_in(clientIdentifier, dbConn)
+		clientIdentifier.send("userAlreadyRegisteredx911".encode())
 	else:
-		clientIdentifier.send("Password: ".encode())
-		password = str(clientIdentifier.recv(1024).decode()).strip()
+		dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name) 
+		values ('{}', '{}', '{}')'''.format(mobNo, userName, name))
 		
-		clientIdentifier.send("Confirm Password: ".encode())
-		confirmPassword = str(clientIdentifier.recv(1024).decode()).strip()
-		
-		if password != confirmPassword:
-			clientIdentifier.send("Passwords did not match!!!".encode())
-			username = sign_in(clientIdentifier, dbConn)
-		else:
-			
-			dbCursor.execute('''INSERT INTO USERDATA (username, password, name, surname) 
-			values ('{}', '{}', '{}', '{}')'''.format(username, password, name, surname))
-			
-			onlineClients.append(username)	
+		onlineClients.append(userName)	
 
-			# A relation for each registered user is created to store its data
-			dbCursor.execute(f'''CREATE TABLE {username} (
-				sender text, 
-				message text,
-				date text,
-				time text,
-				readreciept int,
-				timestamp TIMESTAMP,
-				FOREIGN KEY (sender) REFERENCES USERDATA(username));''')
-			
-			# A function that notifies the user if he is online and a new message is there for him
-			# The function is called by a trigger which gets triggered on insertion on its table
-			dbCursor.execute(f"""
-			CREATE OR REPLACE FUNCTION notifier_{username}()
-			RETURNS trigger AS $$
-			DECLARE
-			BEGIN
-				PERFORM pg_notify('{username.lower()}', row_to_json(NEW)::text );
-			RETURN NEW;
-			END;
-			$$ LANGUAGE plpgsql;
-			CREATE TRIGGER notify_trigger_{username}
-			AFTER INSERT ON {username}
-			FOR EACH ROW
-			EXECUTE PROCEDURE notifier_{username}();
-			""")
-			print("User Registered Successfully!!!")
-			dbConn.commit()
-	return username
+		# A relation for each registered user is created to store its data
+		dbCursor.execute(f'''CREATE TABLE {userName} (
+			sender text, 
+			message text,
+			date text,
+			time text,
+			readreciept int,
+			timestamp TIMESTAMP,
+			FOREIGN KEY (sender) REFERENCES USERDATA(mobNo));''')
+		
+		# A relation for each registered user to store its transaction data
+		dbCursor.execute(f'''CREATE TABLE transactions_{userName} (
+		transactionID int PRIMARY KEY,
+		sender text,
+		beneficiary text,
+		amount double,
+		timestamp TIMESTAMP
+		FOREIGN KEY (transactionID) REFERANCES transactions(transactionID)
+		);''')
+		
+		# A function that notifies the user if he is online and a new message is there for him
+		# The function is called by a trigger which gets triggered on insertion on its table
+		dbCursor.execute(f"""
+		CREATE OR REPLACE FUNCTION notifier_{userName}()
+		RETURNS trigger AS $$
+		DECLARE
+		BEGIN
+			PERFORM pg_notify('{userName.lower()}', row_to_json(NEW)::text );
+		RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+		CREATE TRIGGER notify_trigger_{userName}
+		AFTER INSERT ON {userName}
+		FOR EACH ROW
+		EXECUTE PROCEDURE notifier_{userName}();
+		""")
+		print("User Registered Successfully!!!")
+		dbConn.commit()
+	return userName
 
 class DestClass:
 	def __init__(self, destclient):
@@ -154,10 +166,10 @@ def Notifier(username, clientIdentifier, destclient):
 
 # Function to handle a particular client connection
 def Application(clientIdentifier):
-	clientIdentifier.send("Select desired alternatives:\n1: to log in\n2: to sign in\nYour choice: ".encode())
 	dbHandler = psycopg2.connect(database="messenger", user="postgres", password="12345678", host="localhost", port=5432)
 	dbCursor = dbHandler.cursor()
-	login_or_signin = clientIdentifier.recv(1024).decode()
+	
+	userCredentials = eval(clientIdentifier.recv(1024).decode().strip())
 
 	# Keeps the track of unseen messages
 	unreadMsgs = 0
@@ -165,16 +177,10 @@ def Application(clientIdentifier):
 	# Keeps the trsack of unread chats
 	unreadChats = 0
 
-	if int(login_or_signin) == 1:
-		userName = log_in(clientIdentifier, 3, dbCursor, unreadMsgs, unreadChats)
-		if not userName:
-			return
-	elif int(login_or_signin) == 2:
-		userName = sign_in(clientIdentifier, dbHandler)
-		dbHandler.commit()
-	else:
-		print("Invalid option!!!\nPlease Try again")	
-		Application(clientIdentifier, 3)
+	
+	# Register client if he/she is new
+	userName = registerMe(clientIdentifier, dbConn, userCredentials)
+
 
 	# destclient is the client to whom message is supposed to be sent
 	# Its default value is user himself 
@@ -264,11 +270,12 @@ except socket.error as err:
 
 # Default port for server 
 portNo = 4444
+ipAddr = "192.168.1.202"
 
 
 # Bind the socket
 try:
-	serverSocket.bind(("192.168.1.206", portNo))
+	serverSocket.bind((ipAddr, portNo))
 	print("Socket has been bound at the port 4444")
 except socket.error as err:
 	print("Failed to Bind the socket with error", str(err))

@@ -48,7 +48,7 @@ except socket.error as err:
 
 # Default socket for server 
 portNo = 4445
-ipAddr = "192.168.1.205"
+ipAddr = "192.168.1.202"
 
 
 # Bind the socket
@@ -65,40 +65,42 @@ try:
 except socket.error as err:
 	print("Failed to listen with error", str(err))
 
-# clientConnection, clientAddr = serverSocket.accept()
-try:
-	clientConnection, clientAddr = serverSocket.accept()
-	print("Connection established successfully")
-except socket.error:
-	print("Connection failed with error", socket.error)
-		
-f = open('file.mp4', 'wb')
-print(clientConnection.recv(2048).decode().strip())
-
-startTime = time.time()
-
-byteSent  = 2048
-
-byteImage = clientConnection.recv(2048)
-
-while byteImage:
-	f.write(byteImage)
-	# print(byteImage)
-	byteImage = clientConnection.recv(2048)
+while True:
+	# clientConnection, clientAddr = serverSocket.accept()
 	try:
-		# checking whether a 0 is received or not
-		if byteImage == b'0':
-			print(True)
-			print(str(byteImage), type(byteImage)) 
-		byteImage = int(byteImage.decode().strip())
-	except:
-		pass
-	byteSent += 2048
-	print(byteSent)
+		clientConnection, clientAddr = serverSocket.accept()
+		print("Connection established successfully")
+	except socket.error:
+		print("Connection failed with error", socket.error)
 
-print("bytes received: ", byteSent)
-print("time elapsed: ", time.time() - startTime)
-print("Done", byteImage, type(byteImage))
-clientConnection.send("Thank You for the image".encode())
+	# This line passes received extension of file to destination
+	# You can use any one of server file for routing but keep time.sleep(0.1) or greater for extension passing
+	# Else data gets concatenated at dart client side  
+	clientConnection.send(clientConnection.recv(2048).strip())
+	time.sleep(0.1)
+	
+	# To count excution time
+	startTime = time.time()
+
+	# receives first bytes  
+	byteImage = clientConnection.recv(2048)
+	
+	# Route until condition becomes false by byteImage = 0
+	while byteImage:
+		clientConnection.send(byteImage)
+		byteImage = clientConnection.recv(2048)
+		try:
+			# checking whether a 0 is received or not
+			if byteImage == b'0':
+				print(True)
+				print(str(byteImage), type(byteImage)) 
+			byteImage = int(byteImage.decode().strip())
+		except:
+			pass
+
+
+	time.sleep(2)
+	print("time elapsed: ", time.time() - startTime)
+	print("Done")
+
 clientConnection.close()
-f.close()

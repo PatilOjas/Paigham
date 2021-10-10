@@ -1,51 +1,89 @@
 import 'dart:io';
 
-class SocketConnection {
-  SocketConnection();
+// class with mediafile sender and receiver
+class MediaShare {
 
-  Future<String> con() async {
-    String indexRequest = 'FLUTTER GET / HTTP/1.1\nConnection: close\n\n';
-    String d = "";
-    Future<String> readContent;
+  // execute receiver first
+  void receiver(Socket socket) async {
+    String extension = ".txt";
+    List<int> fileChunks = [];
+    const extensionList = [
+      '.png',
+      '.mp4',
+      '.jpg',
+      '.mp3',
+      '.jpeg',
+      '.webm',
+      '.wav',
+      '.pdf',
+    ];
 
-    await Socket.connect('192.168.1.205', 4445).then((socket) async {
-      print('Connected to: '
-          '${socket.remoteAddress.address}:${socket.remotePort}');
+    const imageExtList = ['.png', '.jpg', '.jpeg'];
 
-      //Establish the onData, and onDone callbacks
-      socket.listen((data) {
-        d = String.fromCharCodes(data);
-        print(d);
-      }, onDone: () {
-        print("Done");
-        socket.write("Erhalten");
-        socket.destroy();
-      });
+    const audioExtList = ['.mp3', '.wav'];
 
-      final f = File('a.mp4');
+    const videoExtList = ['.mp4', '.mkv', '.webm'];
 
-      // print(f.readAsBytesSync());
-      //Send the request
-      final byteString = await f.readAsBytes();
-      socket.write("Be ready... Sending...");
-      var q = () {
-        socket.add(byteString);
-        return Future.delayed(Duration(seconds: (byteString.length/9899136).toInt()), () => socket.write("0"));
-      };
-      print("Awaiting q...");
-      final byteSent = (byteString.length * 4) / 130836;
-      print("Asach: " + byteString.length.toString());
-      print("UTF-8 Encoded: " + (byteString.length * 4).toString());
-      print("byteSent " + byteSent.toString());
-      q();
-      print("Awaiting completed..");
-      print("0 has been sent");
+    socket.listen((data) async {
+      if (extensionList.contains(String.fromCharCodes(data))) {
+        extension = String.fromCharCodes(data);
+        print("extension " + extension);
+      } else {
+        List<int> I_quit = await new List.from(data);
+        fileChunks.addAll(I_quit);
+      }
+    }, onDone: () async {
+      print("Completed");
+      final fileName = DateTime.now()
+          .toString()
+          .replaceAll(RegExp(r'[^\w\s]+'), "")
+          .split(" ")
+          .join("-");
+      var initialname = "";
+      if (extension == '.pdf') {
+        initialname = 'PDF';
+      }
+      if (imageExtList.contains(extension)) {
+        initialname = 'IMG';
+      }
+      if (audioExtList.contains(extension)) {
+        initialname = 'AUD';
+      }
+      if (videoExtList.contains(extension)) {
+        initialname = 'VID';
+      }
+      File clientFile = await File('$initialname$fileName$extension');
+      await clientFile.writeAsBytes(fileChunks, mode: FileMode.writeOnlyAppend);
     });
-    return d;
+  }
+
+// execute sender whenever you need to send any file by passing its file path and socket object 
+  void sender(Socket socket, String fileName) async {
+    final f = File(fileName);
+
+    final byteString = await f.readAsBytes();
+
+    final fileNameList = fileName.split(".");
+    final ext = "." + fileNameList[fileNameList.length - 1];
+    socket.write(ext);
+
+    var q = () {
+      socket.add(byteString);
+      return Future.delayed(
+          Duration(seconds: (byteString.length / 3000000).ceil() + 10), () {
+        socket.write("0");
+        print("0 has been sent");
+      });
+    };
+    print("Awaiting q...");
+    await q();
   }
 }
 
-void main(List<String> args) {
-  var s = SocketConnection();
-  print(s.con());
+// Refer this main function for further use of MediaShare class
+void main(List<String> args) async {
+  var s = MediaShare();
+  Socket socket = await Socket.connect("ipAddr", 4445);
+  s.receiver(socket);
+  s.sender(socket, 'filepath');
 }
