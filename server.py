@@ -6,7 +6,15 @@ import select
 import json
 import os
 import time
+import pickle
+import string
 
+
+# ChatBot model
+def cleaner(x):
+    return [a for a in (''.join([a for a in x if a not in string.punctuation])).lower().split()]
+
+traied_model = pickle.load(open('model.sav', 'rb'))
 
 # A list to hold names of users those are online
 onlineClients = list()
@@ -14,8 +22,11 @@ onlineClients = list()
 # A list containing thread ids of each connection thread
 applicationThread = list()
 
+# Database name
+dataBase = 'scratch'
+
 # Database connector
-dbConn = psycopg2.connect(database="", user="postgres", password="12345678", host="localhost", port=5432)
+dbConn = psycopg2.connect(database=dataBase, user="postgres", password="12345678", host="localhost", port=5432)
 dbConn.autocommit = True
 dbCursor = dbConn.cursor()
 
@@ -24,7 +35,9 @@ try:
 	dbCursor.execute('''CREATE TABLE USERDATA (
 		mobNo text PRIMARY KEY,
 		username text,
-		name text);''')
+		password text,
+		name text,
+		filedesc bytea);''')
 	dbConn.commit()
 except:
 	print("Error in Creation of Table 'Userdata' or It already exists.") 
@@ -41,7 +54,7 @@ try:
 		);''')
 	dbConn.commit()
 except:
-	print("Error in Creation of Table 'Userdata' or It already exists.") 
+	print("Error in Creation of Table 'transactions' or It already exists.") 
 
 dbConn.close()
 
@@ -85,7 +98,7 @@ def registerMe(clientIdentifier, dbConn, userCredentials):
 	
 	name = userCredentials['name']
 	mobNo = userCredentials['mobNo']
-	userName = "Paigham" + mobNo
+	userName = "paigham" + mobNo
 
 	dbCursor.execute("SELECT COUNT(mobNo) from USERDATA where mobNo ='{}'".format(mobNo))
 	usernameList = dbCursor.fetchall()
@@ -93,10 +106,12 @@ def registerMe(clientIdentifier, dbConn, userCredentials):
 	# usernameList contains the count of users having same username to currentlr registering 
 	# If it is more than 0 then the username is declined and requested to enter another username 
 	if int(usernameList[0][0]) > 0:
-		clientIdentifier.send("userAlreadyRegisteredx911".encode())
+		# clientIdentifier.send("userAlreadyRegisteredx911".encode())
+		dbCursor.execute(f"UPDATE userdata SET fildesc = {psycopg2.Binary(clientIdentifier)};")
+
 	else:
-		dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name) 
-		values ('{}', '{}', '{}')'''.format(mobNo, userName, name))
+		dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name, filedesc) 
+		values ('{}', '{}', '{}', {})'''.format(mobNo, userName, name, psycopg2.Binary(clientIdentifier)))
 		
 		onlineClients.append(userName)	
 
@@ -147,7 +162,7 @@ class DestClass:
 # to continuously listen the database and notify the user if a new message is there for him
 # Execued within a separate thread
 def Notifier(username, clientIdentifier, destclient):
-	Conn = psycopg2.connect(database="messenger", user="postgres", password="12345678", host="localhost", port=5432)
+	Conn = psycopg2.connect(database=dataBase, user="postgres", password="12345678", host="localhost", port=5432)
 	Conn.autocommit = True
 	Cursor = Conn.cursor()
 	Cursor.execute(f"LISTEN {username.lower()};")
@@ -166,7 +181,7 @@ def Notifier(username, clientIdentifier, destclient):
 
 # Function to handle a particular client connection
 def Application(clientIdentifier):
-	dbHandler = psycopg2.connect(database="messenger", user="postgres", password="12345678", host="localhost", port=5432)
+	dbHandler = psycopg2.connect(database=dataBase, user="postgres", password="12345678", host="localhost", port=5432)
 	dbCursor = dbHandler.cursor()
 	
 	userCredentials = eval(clientIdentifier.recv(1024).decode().strip())
@@ -193,27 +208,36 @@ def Application(clientIdentifier):
 
 	while True:
 
+		"""###################################  recvdMsg  #################################
+		recvdMsg = {
+			'command': a text depicting what to do,
+			'message': a text message to be forwarded to its destination,
+			'destClient': mobNo of destClient whose file descriptor has to be fetched from userdata table,
+			'msgType': a text depicting type of message that it contains 
+		}
+		######################################  recvdMsg  #################################"""
 		# stores response from client
 		recvdMsg = clientIdentifier.recv(1024).decode().strip()
+		recvdMsg = eval(recvdMsg)
 		
 		# showOn displays all the online clients
-		if recvdMsg == "showOn":
-			separator = '\n'
-			clientIdentifier.send(separator.join(onlineClients).encode())
-			continue
+		# if recvdMsg['command'] == "showOn":
+		# 	separator = '\n'
+		# 	clientIdentifier.send(separator.join(onlineClients).encode())
+		# 	continue
 
-		# showAll displays all the registered clients
-		elif recvdMsg == "showAll":
-			separator = '\n'
-			dbCursor.execute("""SELECT username FROM USERDATA;""")
-			allUsers = dbCursor.fetchall()
-			users = lambda x: [i[0] for i in x]
-			clientIdentifier.send(separator.join(users(allUsers)).encode())
-			continue
+		# # showAll displays all the registered clients
+		# elif recvdMsg == "showAll":
+		# 	separator = '\n'
+		# 	dbCursor.execute("""SELECT username FROM USERDATA;""")
+		# 	allUsers = dbCursor.fetchall()
+		# 	users = lambda x: [i[0] for i in x]
+		# 	clientIdentifier.send(separator.join(users(allUsers)).encode())
+		# 	continue
 
 		# change used to destClient
 		# It also marks all the messages from destClients as seen
-		elif recvdMsg.split()[0] == "change":
+		if recvdMsg['command'] == "change":
 			dbCursor.execute('SELECT username FROM USERDATA;')
 			allUsers = dbCursor.fetchall()
 			users = lambda x: [i[0] for i in x]
@@ -241,25 +265,34 @@ def Application(clientIdentifier):
 				time.sleep(2)
 				clientIdentifier.send(chats.encode())
 				dbCursor.execute("DROP TABLE chats;")
+				dbConn.commit()
 				continue
 
+		if recvdMsg['msgType'] == 'chatBotMsg':
+			replyText = traied_model.predict([recvdMsg['message']])[0]
+			clientIdentifier.send(replyText.encode())
 		# To close the connection
-		elif recvdMsg == "_exit_":
-			onlineClients.remove(userName)
-			print("Connection terminated for", userName)
-			break
+		# elif recvdMsg == "_exit_":
+		# 	onlineClients.remove(userName)
+		# 	print("Connection terminated for", userName)
+		# 	break
 		
 		# To get brief of unseen messages from various chats
-		elif recvdMsg == "checkNewMsgs":
-			dbCursor.execute('''SELECT COUNT(DISTINCT sender), COUNT(sender) from {} 
-			where readreciept = 0;'''.format(userName))
-			readReport = dbCursor.fetchall()
-			clientIdentifier.send('''You have {} unread messages from {} chats.'''.format(readReport[0][1], readReport[0][0]).encode())
-			continue
+		# elif recvdMsg == "checkNewMsgs":
+		# 	dbCursor.execute('''SELECT COUNT(DISTINCT sender), COUNT(sender) from {} 
+		# 	where readreciept = 0;'''.format(userName))
+		# 	readReport = dbCursor.fetchall()
+		# 	clientIdentifier.send('''You have {} unread messages from {} chats.'''.format(readReport[0][1], readReport[0][0]).encode())
+		# 	continue
 		
-		# Each message is storeed in respective user's table
-		dbCursor.execute('''INSERT INTO {} VALUES ('{}', '{}', CURRENT_DATE, LOCALTIME, 0, LOCALTIMESTAMP)'''.format(destclient.destclient, userName, recvdMsg))
-		dbHandler.commit()
+		# Each message is stored in respective user's table
+		if recvdMsg['msgType'] == 'textMsg': 
+			dbCursor.execute('''INSERT INTO paigham{} VALUES ('paigham{}', '{}', CURRENT_DATE, LOCALTIME, 0, LOCALTIMESTAMP)'''.format(recvdMsg['destClient'], recvdMsg['message'], recvdMsg))
+			dbHandler.commit()
+
+		if recvdMsg['msgType'] == 'binaryMedia':
+			pass
+			"""#########################	Please complete this part	#######################"""
 
 try:
 	# Creates a socket and if it fails, it will raise an error

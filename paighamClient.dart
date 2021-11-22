@@ -72,7 +72,7 @@ class MediaShare {
       return Future.delayed(
           Duration(seconds: (byteString.length / 3000000).ceil() + 10), () {
         socket.write("0");
-        print("0 has been sent");
+        print("0 has been sent & single tick received");
       });
     };
     print("Awaiting q...");
@@ -81,6 +81,7 @@ class MediaShare {
 }
 
 // Refer this main function for further use of MediaShare class
+// Replace file path with actual path of file and replace ipAddr with ipAddress of server
 void main(List<String> args) async {
   var s = MediaShare();
   Socket socket = await Socket.connect("ipAddr", 4445);
