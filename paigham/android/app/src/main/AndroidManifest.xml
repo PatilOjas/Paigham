@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.paigham">
    <application
-        android:label="Paigham"
+        android:label="paigham"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
