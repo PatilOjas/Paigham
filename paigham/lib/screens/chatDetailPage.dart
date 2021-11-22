@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:paigham/models/chatMessageModel.dart';
+import 'dart:io';
 
 class ChatDetailPage extends StatefulWidget{
   @override
@@ -7,6 +8,8 @@ class ChatDetailPage extends StatefulWidget{
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
+
+  TextEditingController message = TextEditingController();
 
   List<ChatMessage> messages = [
     ChatMessage(messageContent: "Hello, Will", messageType: "receiver"),
@@ -53,7 +56,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ),
                   SizedBox(width: 15,),
                   FloatingActionButton(
-                    onPressed: (){},
+                    onPressed: (){
+                      print("print Dictionaries");
+                    },
                     child: Icon(Icons.call_rounded,color: Colors.white,size: 22,),
                     elevation: 0,
                   ),
@@ -127,6 +132,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   SizedBox(width: 15,),
                   Expanded(
                     child: TextField(
+                      controller: message,
                       decoration: InputDecoration(
                         hintText: "Write message...",
                         hintStyle: TextStyle(color: Colors.black54),
@@ -136,7 +142,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   ),
                   SizedBox(width: 15,),
                   FloatingActionButton(
-                    onPressed: (){},
+                    onPressed: (){
+                      print(message);
+                    },
                     child: Icon(Icons.send,color: Colors.white,size: 18,),
                     backgroundColor: Colors.blue,
                     elevation: 0,
