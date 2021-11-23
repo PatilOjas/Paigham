@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:paigham/templates/chatroom.dart';
 import 'package:paigham/screens/homePage.dart';
+import 'package:paigham/screens/loginMain.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +18,8 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      // home: HomePage(),
+      home: LoginMain(),
     );
   }
 }
