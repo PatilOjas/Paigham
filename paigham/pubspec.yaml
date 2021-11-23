@@ -59,10 +59,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  #assets:
-  #  - assets/
-  # - images/a_dot_ham.jpeg
-
+  assets:
+    - assets/welcome.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
 
@@ -78,13 +76,23 @@ flutter:
     - family: Samaran
       fonts:
         - asset: fonts/samaran.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
+
     - family: Raleway
       fonts:
         - asset: fonts/Raleway-SemiboldItalic.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
+
+    - family: Rolasand
+      fonts:
+        - asset: fonts/rolasand.regular.ttf
+
+    - family: Amorisa Free
+      fonts:
+        - asset: fonts/Amorisa Free.ttf
+    
+    - family: Believes And Faith
+      fonts:
+        - asset: fonts/Believes And Faith.ttf
+
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages

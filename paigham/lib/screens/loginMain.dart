@@ -28,9 +28,9 @@ class LoginMain extends StatelessWidget {
                   Text(
                     "Paigham",
                     style: TextStyle(
-                      fontFamily: 'Segeo UI',
+                      fontFamily: 'Rolasand',
                       fontWeight: FontWeight.bold,
-                      fontSize: 30,
+                      fontSize: 40,
 
                     ),
                     
@@ -51,7 +51,7 @@ class LoginMain extends StatelessWidget {
                 height: MediaQuery.of(context).size.height / 3,
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage("assets/welcome.png")
+                    image: AssetImage("/assets/welcome.png")
                   )
                 ),
               ),
@@ -59,28 +59,28 @@ class LoginMain extends StatelessWidget {
               Column(
                 children: <Widget>[
                   // the login button
-                  MaterialButton(
-                    minWidth: double.infinity,
-                    height: 60,
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
+                  // MaterialButton(
+                  //   minWidth: double.infinity,
+                  //   height: 60,
+                  //   onPressed: () {
+                  //     Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
 
-                    },
+                  //   },
                     // defining the shape
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(
-                        color: Colors.black
-                      ),
-                      borderRadius: BorderRadius.circular(50)
-                    ),
-                    child: Text(
-                      "Login",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18
-                      ),
-                    ),
-                  ),
+                    // shape: RoundedRectangleBorder(
+                    //   side: BorderSide(
+                    //     color: Colors.black
+                    //   ),
+                    //   borderRadius: BorderRadius.circular(50)
+                    // ),
+                  //   child: Text(
+                  //     "Login",
+                  //     style: TextStyle(
+                  //       fontWeight: FontWeight.w600,
+                  //       fontSize: 18
+                  //     ),
+                  //   ),
+                  // ),
                   // creating the signup button
                   SizedBox(height:20),
                   MaterialButton(
