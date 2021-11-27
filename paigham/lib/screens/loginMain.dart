@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:paigham/screens/login.dart';
 import 'package:paigham/screens/signup.dart';
+import 'package:paigham/main.dart';
 
 
 

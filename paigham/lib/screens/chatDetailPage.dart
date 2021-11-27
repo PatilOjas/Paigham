@@ -217,6 +217,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   ),
                   FloatingActionButton(
                     onPressed: () {
+                      //
                       print(message);
                     },
                     child: Icon(
