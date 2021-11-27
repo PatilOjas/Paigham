@@ -84,7 +84,7 @@ class SignupPage extends StatelessWidget {
 
                   ),
                   child: Text(
-                    "Sign up", style: TextStyle(
+                    "Done", style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: Colors.white,
@@ -97,17 +97,17 @@ class SignupPage extends StatelessWidget {
 
 
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text("Already have an account?"),
-                  Text(" Login", style:TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18
-                  ),
-                  )
-                ],
-              )
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.center,
+              //   children: <Widget>[
+              //     Text("Already have an account?"),
+              //     Text(" Login", style:TextStyle(
+              //         fontWeight: FontWeight.w600,
+              //         fontSize: 18
+              //     ),
+              //     )
+              //   ],
+              // )
 
 
 

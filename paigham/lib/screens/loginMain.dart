@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:paigham/screens/login.dart';
 import 'package:paigham/screens/signup.dart';
+import 'package:paigham/main.dart';
 
 
 
@@ -36,7 +37,7 @@ class LoginMain extends StatelessWidget {
                     
                   ),
                   SizedBox(
-                    height: 20,
+                    height: 35,
                   ),
                   Text("Take a deep dive into this multipurpose messaging App",
                   textAlign: TextAlign.center,

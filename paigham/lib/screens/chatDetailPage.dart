@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:paigham/main.dart';
 import 'package:paigham/models/chatMessageModel.dart';
 import 'dart:io';
 
@@ -9,8 +10,12 @@ class ChatDetailPage extends StatefulWidget {
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
   TextEditingController message = TextEditingController();
-
   // TextEditingController message = TextEditingController();
+
+  late Socket client_Socket;
+  void getSocket() async {
+    client_Socket = await Socket.connect("192.168.1.201", 4444);
+  }
 
   List<ChatMessage> messages = [
     ChatMessage(messageContent: "Hello, Will", messageType: "receiver"),
@@ -22,6 +27,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     ChatMessage(
         messageContent: "Is there any thing wrong?", messageType: "sender"),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    getSocket();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +60,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ),
                 CircleAvatar(
                   backgroundImage: NetworkImage(
-                      "<https://randomuser.me/api/portraits/men/5.jpg>"),
+                      "https://randomuser.me/api/portraits/men/5.jpg"),
                   maxRadius: 20,
                 ),
                 SizedBox(
@@ -106,7 +117,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   child: FittedBox(
                     child: FloatingActionButton(
                       backgroundColor: Colors.white,
-                      onPressed: () {},
+                      onPressed: () {
+                        print(clientSocket);
+                      },
                       child: Icon(
                         Icons.video_call_rounded,
                         color: Colors.blue[800],
@@ -217,7 +230,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   ),
                   FloatingActionButton(
                     onPressed: () {
-                      print(message);
+                      client_Socket.write("""{
+                        'name': 'Paigham',
+                        'mobNo': '1234567890'
+                      }"""
+                          .toString());
+                      print(message.text);
                     },
                     child: Icon(
                       Icons.send,

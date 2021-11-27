@@ -93,8 +93,8 @@ def log_in(clientIdentifier, trialCounter, dbCursor, unreadMsgs, unreadChats):
 	return username
 
 # To carry out the process of registration
-def registerMe(clientIdentifier, dbConn, userCredentials):
-	dbCursor = dbConn.cursor()
+def registerMe(clientIdentifier, Conn, userCredentials):
+	dbCursor = Conn.cursor()
 	
 	name = userCredentials['name']
 	mobNo = userCredentials['mobNo']
@@ -152,7 +152,7 @@ def registerMe(clientIdentifier, dbConn, userCredentials):
 		EXECUTE PROCEDURE notifier_{userName}();
 		""")
 		print("User Registered Successfully!!!")
-		dbConn.commit()
+		Conn.commit()
 	return userName
 
 class DestClass:
@@ -184,7 +184,10 @@ def Application(clientIdentifier):
 	dbHandler = psycopg2.connect(database=dataBase, user="postgres", password="12345678", host="localhost", port=5432)
 	dbCursor = dbHandler.cursor()
 	
-	userCredentials = eval(clientIdentifier.recv(1024).decode().strip())
+	userCredentials = clientIdentifier.recv(1024).decode().strip()
+	print(userCredentials)
+	userCredentials = eval(userCredentials)
+	print(userCredentials)
 
 	# Keeps the track of unseen messages
 	unreadMsgs = 0
@@ -194,7 +197,7 @@ def Application(clientIdentifier):
 
 	
 	# Register client if he/she is new
-	userName = registerMe(clientIdentifier, dbConn, userCredentials)
+	userName = registerMe(clientIdentifier, dbHandler, userCredentials)
 
 
 	# destclient is the client to whom message is supposed to be sent
@@ -303,7 +306,7 @@ except socket.error as err:
 
 # Default port for server 
 portNo = 4444
-ipAddr = "192.168.1.202"
+ipAddr = "192.168.1.201"
 
 
 # Bind the socket

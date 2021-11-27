@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:paigham/templates/chatroom.dart';
 import 'package:paigham/screens/homePage.dart';
 import 'package:paigham/screens/loginMain.dart';
+import 'dart:io';
 
 void main() {
+
+  var temp="Hello Paigham";
   runApp(const MyApp());
 }
-
+Future<Socket> clientSocket = Socket.connect("192.168.1.201", 4444);
 class MyApp extends StatelessWidget {
+  
   const MyApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
