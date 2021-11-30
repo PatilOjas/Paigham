@@ -5,9 +5,24 @@ import psycopg2
 import select
 import json
 import os
+from twilio.rest import Client
 import time
 import pickle
 import string
+import math
+import random
+from decouple import config 
+
+
+# OTP Generator
+def generateOTP():
+	digits = "0123456789"
+	OTP = ""
+
+	for i in range(4):
+		OTP += digits[math.floor(random.random() * 10)]
+	
+	return OTP
 
 
 # ChatBot model
@@ -35,7 +50,6 @@ try:
 	dbCursor.execute('''CREATE TABLE USERDATA (
 		mobNo text PRIMARY KEY,
 		username text,
-		password text,
 		name text,
 		status text);''')
 	dbConn.commit()
@@ -98,6 +112,10 @@ def registerMe(clientIdentifier, Conn, userCredentials):
 	
 	name = userCredentials['name']
 	mobNo = userCredentials['mobNo']
+
+	if len(mobNo) > 10:
+		clientIdentifier.send("Incorrect Phone number!!!")
+
 	userName = "paigham" + mobNo
 
 	dbCursor.execute("SELECT COUNT(mobNo) from USERDATA where mobNo ='{}'".format(mobNo))
@@ -109,50 +127,73 @@ def registerMe(clientIdentifier, Conn, userCredentials):
 		clientIdentifier.send("userAlreadyRegisteredx911".encode())
 		
 	else:
-		dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name) 
-		values ('{}', '{}', '{}')'''.format(mobNo, userName, name))
-		
-		onlineClients.append(userName)	
+		otp = generateOTP()
 
-		# A relation for each registered user is created to store its data
-		dbCursor.execute(f'''CREATE TABLE {userName} (
-			sender text, 
-			message text,
-			date text,
-			time text,
-			readreciept int,
-			timestamp TIMESTAMP,
-			FOREIGN KEY (sender) REFERENCES USERDATA(mobNo));''')
+		client = Client(config('ACCOUNT_SID'), config('AUTH_TOKEN'))
 		
-		# A relation for each registered user to store its transaction data
-		# dbCursor.execute(f'''CREATE TABLE transactions_{userName} (
-		# transactionID int PRIMARY KEY,
-		# sender text,
-		# beneficiary text,
-		# amount decimal,
-		# timestamp TIMESTAMP,
-		# FOREIGN KEY (transactionID) REFERENCES transactions(transactionID)
-		# );''')
-		
-		# A function that notifies the user if he is online and a new message is there for him
-		# The function is called by a trigger which gets triggered on insertion on its table
-		dbCursor.execute(f"""
-		CREATE OR REPLACE FUNCTION notifier_{userName}()
-		RETURNS trigger AS $$
-		DECLARE
-		BEGIN
-			PERFORM pg_notify('{userName.lower()}', row_to_json(NEW)::text );
-		RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;
-		CREATE TRIGGER notify_trigger_{userName}
-		AFTER INSERT ON {userName}
-		FOR EACH ROW
-		EXECUTE PROCEDURE notifier_{userName}();
-		""")
-		print("User Registered Successfully!!!")
-		Conn.commit()
-	return userName
+		message = client.messages.create(
+			body=f'This is your verification code for paigham: {otp}',
+			from_=config('PHONE_NUMBER'),
+			to=f'+91{mobNo}'
+		)
+
+		print(message.sid)
+
+		returnedOTP = clientIdentifier.recv(1024).decode().strip()
+
+		if str(otp) == returnedOTP:
+
+			dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name) 
+			values ('{}', '{}', '{}')'''.format(mobNo, userName, name))
+			
+			onlineClients.append(userName)	
+
+			# A relation for each registered user is created to store its data
+			dbCursor.execute(f'''CREATE TABLE {userName} (
+				sender text, 
+				message text,
+				date text,
+				time text,
+				readreciept int,
+				timestamp TIMESTAMP,
+				FOREIGN KEY (sender) REFERENCES USERDATA(mobNo));''')
+			
+			# A relation for each registered user to store its transaction data
+			# dbCursor.execute(f'''CREATE TABLE transactions_{userName} (
+			# transactionID int PRIMARY KEY,
+			# sender text,
+			# beneficiary text,
+			# amount decimal,
+			# timestamp TIMESTAMP,
+			# FOREIGN KEY (transactionID) REFERENCES transactions(transactionID)
+			# );''')
+			
+			# A function that notifies the user if he is online and a new message is there for him
+			# The function is called by a trigger which gets triggered on insertion on its table
+			dbCursor.execute(f"""
+			CREATE OR REPLACE FUNCTION notifier_{userName}()
+			RETURNS trigger AS $$
+			DECLARE
+			BEGIN
+				PERFORM pg_notify('{userName.lower()}', row_to_json(NEW)::text );
+			RETURN NEW;
+			END;
+			$$ LANGUAGE plpgsql;
+			CREATE TRIGGER notify_trigger_{userName}
+			AFTER INSERT ON {userName}
+			FOR EACH ROW
+			EXECUTE PROCEDURE notifier_{userName}();
+			""")
+			print("User Registered Successfully!!!")
+			clientIdentifier.send("userAlreadyRegisteredx911".encode())
+			Conn.commit()
+		else:
+			clientIdentifier.send("Invalid OTP!!!".encode())
+
+
+		return userName
+	
+
 
 class DestClass:
 	def __init__(self, destclient):
@@ -275,7 +316,17 @@ def Application(clientIdentifier):
 			dbCursor.execute("DROP TABLE transhistory;")
 			dbHandler.commit()
 
-			
+		if recvdMsg['command'] == "delAcc":
+			data = eval(recvdMsg['message'])
+			dbCursor.execute(f"""DELETE FROM USERDATA WHERE mobNo='{data['me']}';""")
+			dbCursor.execute(f"DROP TABLE paigham{data['me']} CASCADE;")
+			dbHandler.commit()
+
+		if recvdMsg['command'] == "chngStat":
+			data = eval(recvdMsg['message'])
+			dbCursor.execute(f"UPDATE USERDATA SET status='{data['newStat']}' WHERE mobNo = '{data['me']}';")
+			dbHandler.commit()
+
 		if recvdMsg['command'] == "change":
 			dbCursor.execute('SELECT username FROM USERDATA;')
 			allUsers = dbCursor.fetchall()
@@ -304,7 +355,7 @@ def Application(clientIdentifier):
 				time.sleep(2)
 				clientIdentifier.send(chats.encode())
 				dbCursor.execute("DROP TABLE chats;")
-				dbConn.commit()
+				dbHandler.commit()
 				continue
 
 		if recvdMsg['msgType'] == 'chatBotMsg':
@@ -333,6 +384,8 @@ def Application(clientIdentifier):
 		if recvdMsg['msgType'] == 'binaryMedia':
 			pass
 			"""#########################	Please complete this part	#######################"""
+		
+		dbHandler.commit()
 
 try:
 	# Creates a socket and if it fails, it will raise an error
