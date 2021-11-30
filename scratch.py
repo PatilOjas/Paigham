@@ -8,7 +8,8 @@ from datetime import datetime
 dbConn = psycopg2.connect(database="scratch", user="postgres", password="12345678", host="localhost", port=5432)
 dbConn.autocommit = True
 dbCursor = dbConn.cursor()
-
+dbCursor.execute("DROP TABLE transactions CASCADE;")
+dbConn.commit()
 ##############################         DO NOT DELETE FOLLOWING CONTENT              ###############################
 
 

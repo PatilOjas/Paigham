@@ -37,7 +37,7 @@ try:
 		username text,
 		password text,
 		name text,
-		filedesc bytea);''')
+		status text);''')
 	dbConn.commit()
 except:
 	print("Error in Creation of Table 'Userdata' or It already exists.") 
@@ -46,10 +46,10 @@ except:
 # Creates a table that holds each registered user's transactions
 try:	
 	dbCursor.execute('''CREATE TABLE transactions (
-		transactionID int PRIMARY KEY,
+		transactionID SERIAL PRIMARY KEY,
 		sender text,
 		beneficiary text,
-		amount double,
+		amount decimal,
 		timestamp TIMESTAMP
 		);''')
 	dbConn.commit()
@@ -106,12 +106,11 @@ def registerMe(clientIdentifier, Conn, userCredentials):
 	# usernameList contains the count of users having same username to currentlr registering 
 	# If it is more than 0 then the username is declined and requested to enter another username 
 	if int(usernameList[0][0]) > 0:
-		# clientIdentifier.send("userAlreadyRegisteredx911".encode())
-		dbCursor.execute(f"UPDATE userdata SET fildesc = {psycopg2.Binary(clientIdentifier)};")
-
+		clientIdentifier.send("userAlreadyRegisteredx911".encode())
+		
 	else:
-		dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name, filedesc) 
-		values ('{}', '{}', '{}', {})'''.format(mobNo, userName, name, psycopg2.Binary(clientIdentifier)))
+		dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name) 
+		values ('{}', '{}', '{}')'''.format(mobNo, userName, name))
 		
 		onlineClients.append(userName)	
 
@@ -126,14 +125,14 @@ def registerMe(clientIdentifier, Conn, userCredentials):
 			FOREIGN KEY (sender) REFERENCES USERDATA(mobNo));''')
 		
 		# A relation for each registered user to store its transaction data
-		dbCursor.execute(f'''CREATE TABLE transactions_{userName} (
-		transactionID int PRIMARY KEY,
-		sender text,
-		beneficiary text,
-		amount double,
-		timestamp TIMESTAMP
-		FOREIGN KEY (transactionID) REFERANCES transactions(transactionID)
-		);''')
+		# dbCursor.execute(f'''CREATE TABLE transactions_{userName} (
+		# transactionID int PRIMARY KEY,
+		# sender text,
+		# beneficiary text,
+		# amount decimal,
+		# timestamp TIMESTAMP,
+		# FOREIGN KEY (transactionID) REFERENCES transactions(transactionID)
+		# );''')
 		
 		# A function that notifies the user if he is online and a new message is there for him
 		# The function is called by a trigger which gets triggered on insertion on its table
@@ -176,6 +175,7 @@ def Notifier(username, clientIdentifier, destclient):
 				if JSONpayload['sender'] == destclient.destclient:
 					payload = payload[:-1] + """, "online": 1}"""
 					Cursor.execute(f"UPDATE {username} SET readreciept = 1;")
+					print(str(payload))
 				clientIdentifier.send(str(payload).encode())
 				Conn.commit()
 
@@ -198,7 +198,7 @@ def Application(clientIdentifier):
 	
 	# Register client if he/she is new
 	userName = registerMe(clientIdentifier, dbHandler, userCredentials)
-
+	print(userName)
 
 	# destclient is the client to whom message is supposed to be sent
 	# Its default value is user himself 
@@ -221,6 +221,7 @@ def Application(clientIdentifier):
 		######################################  recvdMsg  #################################"""
 		# stores response from client
 		recvdMsg = clientIdentifier.recv(1024).decode().strip()
+		print(recvdMsg)
 		recvdMsg = eval(recvdMsg)
 		
 		# showOn displays all the online clients
@@ -240,6 +241,41 @@ def Application(clientIdentifier):
 
 		# change used to destClient
 		# It also marks all the messages from destClients as seen
+		if recvdMsg['command'] == "transact":
+			data = eval(recvdMsg['message'])
+			dbCursor.execute(f"""INSERT INTO transactions (sebder, beneficiary, amount, timestamp) values ('{data['sender']}', '{data['beneficiary']}', {data['amount']}, LOCALTIMESTAMP);""")
+			dbHandler.commit()
+		
+		if recvdMsg['command'] == "viewBal":
+			data = eval(recvdMsg['message'])
+			dbCursor.execute(f"""SELECT SUM(amount) FROM transactions WHERE beneficiary='{data['me']}';""")
+			incoming = float(dbCursor.fetchall()[0])
+			dbCursor.execute(f"""SELECT SUM(amount) FROM transactions WHERE sender='{data['me']}';""")
+			outgoing = float(dbCursor.fetchall()[0])
+			clientIdentifier.send(str(incoming-outgoing).encode())
+
+		if recvdMsg['command'] == "getTransList":
+			data = eval(recvdMsg['message'])
+			dbCursor.execute(f"""CREATE TEMP TABLE transhistory AS 
+			SELECT * FROM transactions where sender='{data['me']}';
+
+			INSERT INTO transhistory (transactionID, sender, beneficiary, amount, timestamp) 
+			SELECT * FROM transactions where beneficiary='{data['me']}';
+			
+			SELECT * FROM transhistory ORDER BY timestamp asc;""")
+
+			try:
+				transHistory = list(x[0] for x in dbCursor.fetchall())
+				transHistory = str('*|*'.join(transHistory))
+			except:
+				transHistory = "No transaction history exists!"
+			
+			time.sleep(2)
+			clientIdentifier.send(transHistory.encode())
+			dbCursor.execute("DROP TABLE transhistory;")
+			dbHandler.commit()
+
+			
 		if recvdMsg['command'] == "change":
 			dbCursor.execute('SELECT username FROM USERDATA;')
 			allUsers = dbCursor.fetchall()
@@ -273,6 +309,7 @@ def Application(clientIdentifier):
 
 		if recvdMsg['msgType'] == 'chatBotMsg':
 			replyText = traied_model.predict([recvdMsg['message']])[0]
+			print(replyText)
 			clientIdentifier.send(replyText.encode())
 		# To close the connection
 		# elif recvdMsg == "_exit_":

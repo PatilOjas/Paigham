@@ -15,6 +15,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   late Socket client_Socket;
   void getSocket() async {
     client_Socket = await Socket.connect("192.168.1.201", 4444);
+    client_Socket.write("""{
+                        'name': 'Ojas',
+                        'mobNo': '9619542526',
+                      }"""
+                          .toString());
   }
 
   List<ChatMessage> messages = [
@@ -231,8 +236,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   FloatingActionButton(
                     onPressed: () {
                       client_Socket.write("""{
-                        'name': 'Paigham',
-                        'mobNo': '1234567890'
+                        'name': 'Ojas',
+                        'mobNo': '9619542526',
+                        'msgType': 'chatBotMsg',
+                        'message': '${message.text}',
+                        'command': ''
                       }"""
                           .toString());
                       print(message.text);
