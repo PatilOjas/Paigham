@@ -53,14 +53,36 @@ class SignupPage extends StatelessWidget {
                   )
                 ],
               ),
-              Column(
-                children: <Widget>[
-                  inputFile(label: "Name"),
-                  inputFile(label: "Mobile Number"),
-                  // inputFile(label: "Password", obscureText: true),
-                  // inputFile(label: "Confirm Password ", obscureText: true),
-                ],
+              Expanded(
+                  child: TextField(
+                      controller: name,
+                      decoration: InputDecoration(
+                          hintText: "Name",
+                          hintStyle: TextStyle(color: Colors.black54),
+                          border: const OutlineInputBorder(),
+                          labelStyle: new TextStyle(color: Colors.black),
+                          ),
+                    ),
               ),
+              Expanded(   
+                  child: TextField(
+                      controller: mobile_num,
+                      decoration: InputDecoration(
+                          hintText: "Mobile Number",
+                          hintStyle: TextStyle(color: Colors.black54),
+                          border: const OutlineInputBorder(),
+                          labelStyle: new TextStyle(color: Colors.black),
+                          ),
+                    ),
+                  ),
+              // Column(               
+              //   children: <Widget>[
+              //     inputFile(label: "Name"),
+              //     inputFile(label: "Mobile Number"),
+              //     // inputFile(label: "Password", obscureText: true),
+              //     // inputFile(label: "Confirm Password ", obscureText: true),
+              //   ],
+              // ),
               Container(
                 padding: EdgeInsets.only(top: 3, left: 3),
                 decoration: BoxDecoration(
