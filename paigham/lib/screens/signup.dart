@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:paigham/screens/homePage.dart';
+import 'dart:io';
 
 class SignupPage extends StatelessWidget {
   dynamic client_Socket;
   SignupPage({this.client_Socket});
+  TextEditingController name = TextEditingController();
+  TextEditingController mobile_num = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
