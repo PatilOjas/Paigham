@@ -4,23 +4,25 @@ import 'package:paigham/models/chatMessageModel.dart';
 import 'dart:io';
 
 class ChatDetailPage extends StatefulWidget {
+  dynamic client_Socket;
+  ChatDetailPage({this.client_Socket});
   @override
-  _ChatDetailPageState createState() => _ChatDetailPageState();
+  _ChatDetailPageState createState() => _ChatDetailPageState(client_Socket: client_Socket);
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
   TextEditingController message = TextEditingController();
   // TextEditingController message = TextEditingController();
 
-  late Socket client_Socket;
-  void getSocket() async {
-    client_Socket = await Socket.connect("192.168.1.201", 4444);
-    client_Socket.write("""{
-                        'name': 'Ojas',
-                        'mobNo': '9619542526',
-                      }"""
-                          .toString());
-  }
+  // late Socket client_Socket;
+  // void getSocket() async {
+  //   client_Socket = await Socket.connect("192.168.1.201", 4444);
+  //   client_Socket.write("""{
+  //                       'name': 'Ojas',
+  //                       'mobNo': '9619542526',
+  //                     }"""
+  //       .toString());
+  // }
 
   List<ChatMessage> messages = [
     ChatMessage(messageContent: "Hello, Will", messageType: "receiver"),
@@ -33,11 +35,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         messageContent: "Is there any thing wrong?", messageType: "sender"),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    getSocket();
-  }
+  dynamic client_Socket;
+  _ChatDetailPageState({required this.client_Socket});
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   getSocket();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -122,9 +126,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   child: FittedBox(
                     child: FloatingActionButton(
                       backgroundColor: Colors.white,
-                      onPressed: () {
-                        print(clientSocket);
-                      },
+                      onPressed: () {},
                       child: Icon(
                         Icons.video_call_rounded,
                         color: Colors.blue[800],

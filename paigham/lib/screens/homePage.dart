@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:paigham/screens/chatPage.dart';
 
-class HomePage extends StatelessWidget{
+class HomePage extends StatelessWidget {
+  dynamic client_Socket;
+  HomePage({this.client_Socket});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-      body: ChatPage(),
+      body: ChatPage(client_Socket: client_Socket),
       bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: Colors.red,
         unselectedItemColor: Colors.grey.shade600,
@@ -19,8 +20,8 @@ class HomePage extends StatelessWidget{
             title: Text("Chats"),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.group_work),
-            title: Text("Channels"),
+            icon: Icon(Icons.money),
+            title: Text("Transactions"),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.account_box),
@@ -31,5 +32,3 @@ class HomePage extends StatelessWidget{
     );
   }
 }
-
-

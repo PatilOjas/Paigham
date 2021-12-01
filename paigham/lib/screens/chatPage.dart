@@ -4,8 +4,10 @@ import 'package:paigham/models/chatUsersModel.dart';
 import 'package:paigham/widgets/conversationList.dart';
 
 class ChatPage extends StatefulWidget {
+  dynamic client_Socket;
+  ChatPage({this.client_Socket});
   @override
-  _ChatPageState createState() => _ChatPageState();
+  _ChatPageState createState() => _ChatPageState(client_Socket: client_Socket);
 }
 
 // ignore: non_constant_identifier_names
@@ -52,6 +54,8 @@ class _ChatPageState extends State<ChatPage> {
         imageURL: "images/userImage8.jpeg",
         time: "18 Feb"),
   ];
+  dynamic client_Socket;
+  _ChatPageState({this.client_Socket});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,6 +145,7 @@ class _ChatPageState extends State<ChatPage> {
                     imageUrl: chatUsers[index].imageURL,
                     time: chatUsers[index].time,
                     isMessageRead: (index == 0 || index == 3) ? true : false,
+                    client_Socket: client_Socket,
                   ),
                 );
               },

@@ -5,15 +5,17 @@ import 'package:paigham/screens/homePage.dart';
 import 'package:paigham/screens/loginMain.dart';
 import 'dart:io';
 
-void main() {
-
-  var temp="Hello Paigham";
-  runApp(const MyApp());
+void main() async {
+  var temp = "Hello Paigham";
+  dynamic client_Socket = await Socket.connect("192.168.1.201", 4444);
+  runApp(MyApp(client_Socket: client_Socket));
 }
-Future<Socket> clientSocket = Socket.connect("192.168.1.201", 4444);
+
+// Future<Socket> clientSocket = Socket.connect("192.168.1.201", 4444);
 class MyApp extends StatelessWidget {
-  
-  const MyApp({Key? key}) : super(key: key);
+  dynamic client_Socket;
+  MyApp({this.client_Socket});
+  // MyApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,7 +25,7 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       // home: HomePage(),
-      home: LoginMain(),
+      home: LoginMain(client_Socket: client_Socket),
     );
   }
 }
