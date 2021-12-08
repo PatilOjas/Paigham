@@ -132,12 +132,13 @@ class _ChatPageState extends State<ChatPage> {
               itemBuilder: (context, index) {
                 return TextButton(
                   onPressed: () {
-                    // client_Socket.write("""{
-                    //     'name': 'Ojas',
-                    //     'mobNo': '9619542526',
-                    //     'command': 'change 1234567890',
-                    //     'msgType': ''
-                    //   }""".toString());
+                    client_Socket.write("""{
+                        'name': 'Ojas',
+                        'mobNo': '9619542526',
+                        'command': 'change',
+                        'to': '1234567890'
+                        'msgType': ''
+                      }""".toString());
                   },
                   child: ConversationList(
                     name: chatUsers[index].name,

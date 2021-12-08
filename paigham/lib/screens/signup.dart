@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:paigham/screens/homePage.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class SignupPage extends StatelessWidget {
   dynamic client_Socket;
   SignupPage({this.client_Socket});
   TextEditingController name = TextEditingController();
   TextEditingController mobile_num = TextEditingController();
+
+  var _write = (String data) async {
+    final Directory directory = await getApplicationDocumentsDirectory();
+    print("\n\n\n\n\n\n\n\n\n\n PATH:\n\n\n\n\n\n\n" + directory.path);
+    final File file = File('${directory.path}/data.txt');
+    await file.writeAsString(data);
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,28 +63,28 @@ class SignupPage extends StatelessWidget {
                 ],
               ),
               Expanded(
-                  child: TextField(
-                      controller: name,
-                      decoration: InputDecoration(
-                          hintText: "Name",
-                          hintStyle: TextStyle(color: Colors.black54),
-                          border: const OutlineInputBorder(),
-                          labelStyle: new TextStyle(color: Colors.black),
-                          ),
-                    ),
-              ),
-              Expanded(   
-                  child: TextField(
-                      controller: mobile_num,
-                      decoration: InputDecoration(
-                          hintText: "Mobile Number",
-                          hintStyle: TextStyle(color: Colors.black54),
-                          border: const OutlineInputBorder(),
-                          labelStyle: new TextStyle(color: Colors.black),
-                          ),
-                    ),
+                child: TextField(
+                  controller: name,
+                  decoration: InputDecoration(
+                    hintText: "Name",
+                    hintStyle: TextStyle(color: Colors.black54),
+                    border: const OutlineInputBorder(),
+                    labelStyle: new TextStyle(color: Colors.black),
                   ),
-              // Column(               
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: mobile_num,
+                  decoration: InputDecoration(
+                    hintText: "Mobile Number",
+                    hintStyle: TextStyle(color: Colors.black54),
+                    border: const OutlineInputBorder(),
+                    labelStyle: new TextStyle(color: Colors.black),
+                  ),
+                ),
+              ),
+              // Column(
               //   children: <Widget>[
               //     inputFile(label: "Name"),
               //     inputFile(label: "Mobile Number"),
@@ -99,11 +108,22 @@ class SignupPage extends StatelessWidget {
                   onPressed: () {
                     client_Socket.write("""
                     {
-                      'name': 'Ojas',
-                      'mobNo': '9619542526',
-                    }""".toString());
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => HomePage(client_Socket: client_Socket)));
+                      'name': '${name.text}',
+                      'mobNo': '${mobile_num.text}',
+                    }"""
+                        .toString());
+                    // final f = File('assets/data.txt');
+                    var data = """
+                    {
+                      'name': '${name}',
+                      'mobNo': '${mobile_num}',
+                    }""";
+                    _write(data);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                HomePage(client_Socket: client_Socket)));
                   },
                   color: Color(0xff0095FF),
                   elevation: 0,

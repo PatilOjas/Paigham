@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:paigham/screens/start.dart';
 
 import 'package:paigham/templates/chatroom.dart';
 import 'package:paigham/screens/homePage.dart';
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       // home: HomePage(),
-      home: LoginMain(client_Socket: client_Socket),
+      home: Start(client_Socket: client_Socket),
     );
   }
 }

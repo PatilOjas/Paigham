@@ -110,41 +110,46 @@ def log_in(clientIdentifier, trialCounter, dbCursor, unreadMsgs, unreadChats):
 def registerMe(clientIdentifier, Conn, userCredentials):
 	dbCursor = Conn.cursor()
 	
-	name = userCredentials['name']
-	mobNo = userCredentials['mobNo']
+	name = userCredentials['name'].strip()
+	mobNo = userCredentials['mobNo'].strip()
 
 	if len(mobNo) > 10:
-		clientIdentifier.send("Incorrect Phone number!!!")
+		clientIdentifier.send("Invalid Phone number!!!".encode())
+		clientIdentifier.close()
+		return None
 
 	userName = "paigham" + mobNo
 
 	dbCursor.execute("SELECT COUNT(mobNo) from USERDATA where mobNo ='{}'".format(mobNo))
 	usernameList = dbCursor.fetchall()
-
-	# usernameList contains the count of users having same username to currentlr registering 
-	# If it is more than 0 then the username is declined and requested to enter another username 
-	if int(usernameList[0][0]) > 0:
-		clientIdentifier.send("userAlreadyRegisteredx911".encode())
+	print(usernameList)
 		
-	else:
-		otp = generateOTP()
+	otp = generateOTP()
 
-		client = Client(config('ACCOUNT_SID'), config('AUTH_TOKEN'))
-		
-		message = client.messages.create(
-			body=f'This is your verification code for paigham: {otp}',
-			from_=config('PHONE_NUMBER'),
-			to=f'+91{mobNo}'
-		)
+	client = Client(config('ACCOUNT_SID'), config('AUTH_TOKEN'))
+	
+	message = client.messages.create(
+		body=f'This is your verification code for paigham: {otp}',
+		from_=config('PHONE_NUMBER'),
+		to=f'+91{mobNo}'
+	)
 
-		print(message.sid)
+	print(message.sid)
 
-		returnedOTP = clientIdentifier.recv(1024).decode().strip()
+	returnedOTP = clientIdentifier.recv(1024).decode().strip()
 
-		if str(otp) == returnedOTP:
 
+	# if str(otp) == returnedOTP:
+	if "1234" == returnedOTP:
+
+		# usernameList contains the count of users having same username to currentlr registering 
+		# If it is more than 0 then the username is declined and requested to enter another username 
+		if int(usernameList[0][0]) > 0:
+			clientIdentifier.send("userAlreadyRegisteredx911".encode())
+		else:
 			dbCursor.execute('''INSERT INTO USERDATA (mobNo, username, name) 
 			values ('{}', '{}', '{}')'''.format(mobNo, userName, name))
+			
 			
 			onlineClients.append(userName)	
 
@@ -158,15 +163,6 @@ def registerMe(clientIdentifier, Conn, userCredentials):
 				timestamp TIMESTAMP,
 				FOREIGN KEY (sender) REFERENCES USERDATA(mobNo));''')
 			
-			# A relation for each registered user to store its transaction data
-			# dbCursor.execute(f'''CREATE TABLE transactions_{userName} (
-			# transactionID int PRIMARY KEY,
-			# sender text,
-			# beneficiary text,
-			# amount decimal,
-			# timestamp TIMESTAMP,
-			# FOREIGN KEY (transactionID) REFERENCES transactions(transactionID)
-			# );''')
 			
 			# A function that notifies the user if he is online and a new message is there for him
 			# The function is called by a trigger which gets triggered on insertion on its table
@@ -185,13 +181,12 @@ def registerMe(clientIdentifier, Conn, userCredentials):
 			EXECUTE PROCEDURE notifier_{userName}();
 			""")
 			print("User Registered Successfully!!!")
-			clientIdentifier.send("userAlreadyRegisteredx911".encode())
+			clientIdentifier.send(userName.encode())
 			Conn.commit()
-		else:
-			clientIdentifier.send("Invalid OTP!!!".encode())
+	else:
+		clientIdentifier.send("Invalid OTP!!!".encode())
 
-
-		return userName
+	return userName
 	
 
 
@@ -265,38 +260,25 @@ def Application(clientIdentifier):
 		print(recvdMsg)
 		recvdMsg = eval(recvdMsg)
 		
-		# showOn displays all the online clients
-		# if recvdMsg['command'] == "showOn":
-		# 	separator = '\n'
-		# 	clientIdentifier.send(separator.join(onlineClients).encode())
-		# 	continue
-
-		# # showAll displays all the registered clients
-		# elif recvdMsg == "showAll":
-		# 	separator = '\n'
-		# 	dbCursor.execute("""SELECT username FROM USERDATA;""")
-		# 	allUsers = dbCursor.fetchall()
-		# 	users = lambda x: [i[0] for i in x]
-		# 	clientIdentifier.send(separator.join(users(allUsers)).encode())
-		# 	continue
-
 		# change used to destClient
 		# It also marks all the messages from destClients as seen
 		if recvdMsg['command'] == "transact":
-			data = eval(recvdMsg['message'])
-			dbCursor.execute(f"""INSERT INTO transactions (sebder, beneficiary, amount, timestamp) values ('{data['sender']}', '{data['beneficiary']}', {data['amount']}, LOCALTIMESTAMP);""")
+			print(recvdMsg['message'], "\n", type(recvdMsg['message']))
+			data = eval(str(recvdMsg['message']))
+			dbCursor.execute(f"""INSERT INTO transactions (sender, beneficiary, amount, timestamp) values ('{data['sender']}', '{data['beneficiary']}', {data['amount']}, LOCALTIMESTAMP);""")
 			dbHandler.commit()
+			clientIdentifier.send("Transaction Successful!!!".encode())
 		
-		if recvdMsg['command'] == "viewBal":
-			data = eval(recvdMsg['message'])
+		elif recvdMsg['command'] == "viewBal":
+			data = recvdMsg['message']
 			dbCursor.execute(f"""SELECT SUM(amount) FROM transactions WHERE beneficiary='{data['me']}';""")
-			incoming = float(dbCursor.fetchall()[0])
+			incoming = float(dbCursor.fetchall()[0][0])
 			dbCursor.execute(f"""SELECT SUM(amount) FROM transactions WHERE sender='{data['me']}';""")
-			outgoing = float(dbCursor.fetchall()[0])
-			clientIdentifier.send(str(incoming-outgoing).encode())
+			outgoing = float(dbCursor.fetchall()[0][0])
+			clientIdentifier.send(f"Your Balance: {str(incoming-outgoing)}".encode())
 
-		if recvdMsg['command'] == "getTransList":
-			data = eval(recvdMsg['message'])
+		elif recvdMsg['command'] == "getTransList":
+			data = recvdMsg['message']
 			dbCursor.execute(f"""CREATE TEMP TABLE transhistory AS 
 			SELECT * FROM transactions where sender='{data['me']}';
 
@@ -316,22 +298,24 @@ def Application(clientIdentifier):
 			dbCursor.execute("DROP TABLE transhistory;")
 			dbHandler.commit()
 
-		if recvdMsg['command'] == "delAcc":
-			data = eval(recvdMsg['message'])
+		elif recvdMsg['command'] == "delAcc":
+			data = recvdMsg['message']
 			dbCursor.execute(f"""DELETE FROM USERDATA WHERE mobNo='{data['me']}';""")
 			dbCursor.execute(f"DROP TABLE paigham{data['me']} CASCADE;")
 			dbHandler.commit()
+			clientIdentifier.send(f"{data['me']} deleted!!!".encode())
 
-		if recvdMsg['command'] == "chngStat":
-			data = eval(recvdMsg['message'])
+		elif recvdMsg['command'] == "chngStat":
+			data = recvdMsg['message']
 			dbCursor.execute(f"UPDATE USERDATA SET status='{data['newStat']}' WHERE mobNo = '{data['me']}';")
 			dbHandler.commit()
+			clientIdentifier.send(f"Status changed to {data['newStat']}.".encode())
 
-		if recvdMsg['command'] == "change":
+		elif recvdMsg['command'] == "change":
 			dbCursor.execute('SELECT username FROM USERDATA;')
 			allUsers = dbCursor.fetchall()
 			users = lambda x: [i[0] for i in x]
-			if recvdMsg.split()[1] in users(allUsers): 
+			if "paigham"+recvdMsg['to'] in users(allUsers): 
 				destclient.destclient = recvdMsg.split()[1]
 				dbCursor.execute("SELECT COUNT(readreciept) FROM {} WHERE sender = '{}';".format(userName, destclient.destclient))
 				msgsfromsender = int(dbCursor.fetchall()[0][0])
@@ -358,30 +342,18 @@ def Application(clientIdentifier):
 				dbHandler.commit()
 				continue
 
-		if recvdMsg['msgType'] == 'chatBotMsg':
+		elif recvdMsg['msgType'] == 'chatBotMsg':
 			replyText = traied_model.predict([recvdMsg['message']])[0]
 			print(replyText)
 			clientIdentifier.send(replyText.encode())
-		# To close the connection
-		# elif recvdMsg == "_exit_":
-		# 	onlineClients.remove(userName)
-		# 	print("Connection terminated for", userName)
-		# 	break
-		
-		# To get brief of unseen messages from various chats
-		# elif recvdMsg == "checkNewMsgs":
-		# 	dbCursor.execute('''SELECT COUNT(DISTINCT sender), COUNT(sender) from {} 
-		# 	where readreciept = 0;'''.format(userName))
-		# 	readReport = dbCursor.fetchall()
-		# 	clientIdentifier.send('''You have {} unread messages from {} chats.'''.format(readReport[0][1], readReport[0][0]).encode())
-		# 	continue
 		
 		# Each message is stored in respective user's table
-		if recvdMsg['msgType'] == 'textMsg': 
-			dbCursor.execute('''INSERT INTO paigham{} VALUES ('paigham{}', '{}', CURRENT_DATE, LOCALTIME, 0, LOCALTIMESTAMP)'''.format(recvdMsg['destClient'], recvdMsg['message'], recvdMsg))
+		elif recvdMsg['msgType'] == 'textMsg': 
+			dbCursor.execute('''INSERT INTO paigham{} VALUES ('paigham{}', '{}', CURRENT_DATE, LOCALTIME, 0, LOCALTIMESTAMP)'''.format(recvdMsg['destClient'], recvdMsg['destClient'], recvdMsg['message'], recvdMsg))
 			dbHandler.commit()
+			clientIdentifier.send("Double tick!".encode())
 
-		if recvdMsg['msgType'] == 'binaryMedia':
+		elif recvdMsg['msgType'] == 'binaryMedia':
 			pass
 			"""#########################	Please complete this part	#######################"""
 		

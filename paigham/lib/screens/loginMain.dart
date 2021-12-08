@@ -1,3 +1,4 @@
+// import 'dart:html';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:paigham/screens/login.dart';
@@ -84,10 +85,12 @@ class LoginMain extends StatelessWidget {
                     minWidth: double.infinity,
                     height: 60,
                     onPressed: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => SignupPage(client_Socket: client_Socket)));
+                      
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    SignupPage(client_Socket: client_Socket)));
                     },
                     color: Color(0xff0095FF),
                     shape: RoundedRectangleBorder(
